@@ -1,0 +1,41 @@
+name: Create hotfix branch from release tag + approved commit
+on:
+  workflow_dispatch:
+    inputs:
+      tag:    {description: "Release tag (base)", required: true}
+      commit: {description: "Merged commit on main to cherry-pick", required: true}
+      name:   {description: "Hotfix name", required: true}
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    environment: hotfix-creator
+    env:
+      TAG: ${{ inputs.tag }}
+      COMMIT: ${{ inputs.commit }}
+      NAME: ${{ inputs.name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {ssh-key: "${{ secrets.HOTFIX_DEPLOY_KEY }}", fetch-depth: 0}
+      - name: Check the base is a release tag and the commit is merged and reviewed
+        run: |
+          git fetch -q --tags
+          git rev-parse -q --verify "refs/tags/$TAG^{commit}" >/dev/null || { echo "::error::$TAG is not a tag"; exit 1; }
+          git merge-base --is-ancestor "$COMMIT" origin/main || { echo "::error::$COMMIT is not on main"; exit 1; }
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/commits/$COMMIT/pulls" --jq '[.[] | select(.merged_at != null and .base.ref == "main")][0].number')
+          [ -n "$pr" ] && [ "$pr" != "null" ] || { echo "::error::$COMMIT did not come from a merged PR into main"; exit 1; }
+          echo "Commit $COMMIT came from merged PR #$pr"
+      - name: Cherry-pick onto the tag and push the new branch
+        run: |
+          git config user.name "hotfix-bot"; git config user.email "hotfix-bot@users.noreply.github.com"
+          git checkout -q -b work "refs/tags/$TAG"
+          if ! git cherry-pick -x -m 1 "$COMMIT" 2>/dev/null && ! git cherry-pick --continue 2>/dev/null; then :; fi
+          if [ -n "$(git diff --name-only --diff-filter=U)" ] || [ "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$TAG^{commit}")" ]; then
+            git diff --name-only --diff-filter=U | sed 's/^/conflict: /'
+            echo "::error::Cherry-pick does not apply cleanly; use the PR-into-hotfix path"; exit 1
+          fi
+          git log --oneline -2
+          git push origin "HEAD:refs/heads/hotfix/$NAME"
