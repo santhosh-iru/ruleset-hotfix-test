@@ -1,0 +1,32 @@
+name: Tag ops
+on:
+  workflow_dispatch:
+    inputs:
+      op: {description: "create|move|delete|token-create", required: true}
+      tag: {required: true}
+      ref: {required: true}
+permissions:
+  contents: write
+jobs:
+  key:
+    if: inputs.op != 'token-create'
+    runs-on: ubuntu-latest
+    environment: hotfix-creator
+    steps:
+      - uses: actions/checkout@v4
+        with: {ssh-key: "${{ secrets.HOTFIX_DEPLOY_KEY }}", fetch-depth: 0}
+      - run: |
+          git fetch -q --tags
+          case "${{ inputs.op }}" in
+            create) git push origin "origin/${{ inputs.ref }}:refs/tags/${{ inputs.tag }}" ;;
+            move)   git push -f origin "origin/${{ inputs.ref }}:refs/tags/${{ inputs.tag }}" ;;
+            delete) git push origin ":refs/tags/${{ inputs.tag }}" ;;
+          esac
+  token:
+    if: inputs.op == 'token-create'
+    runs-on: ubuntu-latest
+    steps:
+      - env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          sha=$(gh api repos/${{ github.repository }}/commits/${{ inputs.ref }} --jq .sha)
+          gh api -X POST repos/${{ github.repository }}/git/refs -f ref="refs/tags/${{ inputs.tag }}" -f sha="$sha"
