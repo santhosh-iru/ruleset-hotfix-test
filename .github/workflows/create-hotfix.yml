@@ -1,0 +1,17 @@
+name: Create hotfix branch
+on:
+  workflow_dispatch:
+    inputs:
+      base: {description: "Release commit or branch", required: true}
+      name: {description: "Hotfix name", required: true}
+permissions:
+  contents: write
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create via REST API
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          sha=$(gh api repos/${{ github.repository }}/commits/${{ inputs.base }} --jq .sha)
+          gh api -X POST repos/${{ github.repository }}/git/refs -f ref="refs/heads/hotfix/${{ inputs.name }}" -f sha="$sha"
