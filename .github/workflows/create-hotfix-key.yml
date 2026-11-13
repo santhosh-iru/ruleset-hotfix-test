@@ -1,0 +1,24 @@
+name: Create hotfix branch (deploy key)
+on:
+  workflow_dispatch:
+    inputs:
+      base: {description: "Release commit or branch", required: true}
+      name: {description: "Hotfix name", required: true}
+permissions:
+  contents: read
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.HOTFIX_DEPLOY_KEY }}
+          fetch-depth: 0
+      - name: Push the new branch with the deploy key
+        run: git push origin "origin/${{ inputs.base }}:refs/heads/hotfix/${{ inputs.name }}"
+      - name: Try a direct commit to it (should be rejected)
+        continue-on-error: true
+        run: |
+          git config user.email t@t; git config user.name t
+          git checkout -b tmp "origin/${{ inputs.base }}" && echo x > key-commit.txt && git add . && git commit -m "direct via key"
+          git push origin "HEAD:refs/heads/hotfix/${{ inputs.name }}"
