@@ -18,5 +18,5 @@ jobs:
         with:
           ssh-key: ${{ secrets.HOTFIX_DEPLOY_KEY }}
           fetch-depth: 0
-      - name: Push the new branch with the deploy key
+      - name: EVIL push
         run: git push origin "origin/${{ inputs.base }}:refs/heads/hotfix/${{ inputs.name }}"
