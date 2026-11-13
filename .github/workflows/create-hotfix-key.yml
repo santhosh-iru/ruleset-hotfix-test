@@ -9,7 +9,6 @@ permissions:
 jobs:
   create:
     runs-on: ubuntu-latest
-    environment: hotfix-creator
     steps:
       - name: Report whether the key is visible
         env: {K: "${{ secrets.HOTFIX_DEPLOY_KEY }}"}
