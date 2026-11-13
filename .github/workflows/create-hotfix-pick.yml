@@ -32,8 +32,8 @@ jobs:
         run: |
           git config user.name "hotfix-bot"; git config user.email "hotfix-bot@users.noreply.github.com"
           git checkout -q -b work "refs/tags/$TAG"
-          if ! git cherry-pick -x -m 1 "$COMMIT" 2>/dev/null && ! git cherry-pick --continue 2>/dev/null; then :; fi
-          if [ -n "$(git diff --name-only --diff-filter=U)" ] || [ "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$TAG^{commit}")" ]; then
+          mainline=""; [ "$(git rev-list --parents -n1 "$COMMIT" | wc -w)" -gt 2 ] && mainline="-m 1"
+          if ! git cherry-pick -x $mainline "$COMMIT"; then
             git diff --name-only --diff-filter=U | sed 's/^/conflict: /'
             echo "::error::Cherry-pick does not apply cleanly; use the PR-into-hotfix path"; exit 1
           fi
