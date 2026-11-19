@@ -2,16 +2,15 @@ name: Preview input test
 on:
   workflow_dispatch:
     inputs:
-      main_only:
-        description: Only in main's file
-        type: choice
-        default: none
-        options: [none, DEV, STG]
+      new_only:
+        description: Only in the new branch's file
+        type: string
+        required: false
 jobs:
   show:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo "file=main ref=${{ github.ref }}"
+          echo "file=new ref=${{ github.ref }}"
           echo 'inputs=${{ toJSON(inputs) }}'
           echo 'event.inputs=${{ toJSON(github.event.inputs) }}'
