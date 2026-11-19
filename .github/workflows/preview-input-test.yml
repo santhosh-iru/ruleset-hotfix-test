@@ -1,17 +1,12 @@
 name: Preview input test
 on:
   workflow_dispatch:
-    inputs:
-      main_only:
-        description: Only in main's file
-        type: choice
-        default: none
-        options: [none, DEV, STG]
+
 jobs:
   show:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo "file=main ref=${{ github.ref }}"
+          echo "file=old ref=${{ github.ref }}"
           echo 'inputs=${{ toJSON(inputs) }}'
           echo 'event.inputs=${{ toJSON(github.event.inputs) }}'
